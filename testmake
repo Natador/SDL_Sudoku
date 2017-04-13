@@ -1,0 +1,17 @@
+# CC refers to the compiler
+CC = gcc
+
+# OBJ_SRC refers to the files to be compiled
+OBJ_SRC = main.c
+
+# OBJ_OUT refers to the output binary
+OBJ_OUT = output
+
+# LFS refers to linker flags
+LFS = -lSDL2
+
+# CFS refers to compiler flags
+CFS = -o
+
+all : main.c
+	$(CC) $(OBJ_SRC) $(LFS) $(CFS) $(OBJ_OUT)
