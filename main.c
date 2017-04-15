@@ -51,7 +51,7 @@ int main(int argv, char*args[]) {
 		printf("Error! Failed to initialize!\n");
 	}
 	else {
-		myFont = TTF_OpenFont("Sans.ttf", 48);
+		myFont = TTF_OpenFont("lazy.ttf", 48);
 		SDL_Rect fillRect = { SCREEN_WIDTH * 6 / 9 + 1, SCREEN_HEIGHT * 0 / 9 + 1, SCREEN_WIDTH / 9 - 1, SCREEN_HEIGHT / 9 - 1 };
 		if (myFont == NULL) {
 			printf("Font could not be located! TTF error: %s", TTF_GetError());
@@ -82,7 +82,7 @@ int main(int argv, char*args[]) {
 				SDL_RenderDrawLine(myRender, 0, SCREEN_HEIGHT * i / 9, SCREEN_WIDTH, SCREEN_HEIGHT * i / 9);
 			}
 
-			testText = loadString("Hello!", myFont);
+			testText = loadString("1", myFont);
 			if (testText == NULL) {
 				printf("Texture problems, dawg.\n");
 				break;
