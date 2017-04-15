@@ -7,7 +7,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+//#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 
 #define ROWS 9
 #define COLS 9
@@ -18,11 +19,13 @@
 //	Variables that start with 'my' are globally accessible.
 SDL_Window* myWindow = NULL;	//The window we'll use
 SDL_Renderer* myRender = NULL;	//The window renderer
+//TTF_Font *myFont = TTF_OpenFont("Sans.ttf", 24);	//The font we will use everywhere
 
 bool loadNums(int board[][COLS], char * filename);
 void printBoard(int board[][COLS]);
 bool initSDL();
 void closeSDL();
+SDL_Texture * loadString(char * message, TTF_Font * font);
 
 int main(int argv, char*args[]) {
     //Sudoku board, stored as a 2d array
@@ -34,6 +37,10 @@ int main(int argv, char*args[]) {
 	//Event handler
 	SDL_Event e;
 
+	SDL_Texture * testText = NULL;
+	
+	TTF_Font *myFont = NULL;
+
 	//Load the numbers from newboard.txt into the array
 	if (!loadNums(mainboard, "newboard.txt")) {
 		printf("Error loading numbers.\n");
@@ -44,6 +51,13 @@ int main(int argv, char*args[]) {
 		printf("Error! Failed to initialize!\n");
 	}
 	else {
+		myFont = TTF_OpenFont("Sans.ttf", 48);
+		SDL_Rect fillRect = { SCREEN_WIDTH * 6 / 9 + 1, SCREEN_HEIGHT * 0 / 9 + 1, SCREEN_WIDTH / 9 - 1, SCREEN_HEIGHT / 9 - 1 };
+		if (myFont == NULL) {
+			printf("Font could not be located! TTF error: %s", TTF_GetError());
+			quit = true;
+		}
+
 		//Main loop
 		while (!quit) {
 			while (SDL_PollEvent(&e) != 0) {
@@ -68,17 +82,23 @@ int main(int argv, char*args[]) {
 				SDL_RenderDrawLine(myRender, 0, SCREEN_HEIGHT * i / 9, SCREEN_WIDTH, SCREEN_HEIGHT * i / 9);
 			}
 
+			testText = loadString("Hello!", myFont);
+			if (testText == NULL) {
+				printf("Texture problems, dawg.\n");
+				break;
+			}
+			else {
 
 			//Render red filled square
-			SDL_Rect fillRect = { SCREEN_WIDTH * 6 / 9 + 1, SCREEN_HEIGHT * 0 / 9 + 1, SCREEN_WIDTH / 9 - 1, SCREEN_HEIGHT / 9 - 1 };
-			SDL_SetRenderDrawColor(myRender, 90, 152, 252, 255);
-			SDL_RenderFillRect(myRender, &fillRect);
 
+			SDL_RenderCopy(myRender, testText, NULL, &fillRect);
+			}
 			//Update the screen
 			SDL_RenderPresent(myRender);
 		}
 	}
 
+	SDL_DestroyTexture(testText);
 	closeSDL();
     return 0;
 }
@@ -167,6 +187,11 @@ bool initSDL() {
 				//Initialize the renderer color
 				SDL_SetRenderDrawColor(myRender, 0xFF, 0xFF, 0xFF, 0xFF);
 
+				//Initialize SDL_ttf
+				if (TTF_Init() == -1) {
+					printf("SDL_ttf failed to initialize! SDL_ttf Error: %s\n", TTF_GetError());
+					success = false;
+				}
 				/*
 				//Initialize PNG loading
 				int imgFlags = IMG_INIT_PNG;
@@ -192,4 +217,32 @@ void closeSDL() {
 	//Quit SDL subsystems
 	//IMG_Quit();
 	SDL_Quit();
+}
+
+//Returns a texture containing a string with ttf font
+SDL_Texture * loadString(char * message, TTF_Font * font) {
+	//TTF_Font *myFont = TTF_OpenFont("Sans.ttf", 50);
+
+	//A black color for the text
+	SDL_Color Black = { 0, 0, 0 };
+
+	//The texture containing the message which we want to return
+	SDL_Texture *textOut = NULL;
+	
+	//Creating the surface containing the message
+	SDL_Surface *surfaceMsg = NULL; 
+
+	surfaceMsg = TTF_RenderText_Solid(font, message, Black);
+	if (surfaceMsg == NULL) {
+		printf("Surface message could not be loaded! TTF Error: %s\n", TTF_GetError());
+	}
+	else {
+		//Turning the surface with the message into a texture
+		textOut = SDL_CreateTextureFromSurface(myRender, surfaceMsg);
+		if (textOut == NULL) {
+			printf("Texture could not be created.\n");
+		}
+		SDL_FreeSurface(surfaceMsg);
+	}
+	return textOut;
 }
