@@ -8,10 +8,10 @@ OBJ_SRC = main.c
 OBJ_OUT = output
 
 # LFS refers to linker flags
-LFS = -lSDL2
+LFS = -lSDL2 -lSDL2_image
 
 # CFS refers to compiler flags
-CFS = -o
+#CFS
 
 all : main.c
-	$(CC) $(OBJ_SRC) $(LFS) $(CFS) $(OBJ_OUT)
+	$(CC) $(OBJ_SRC) $(LFS) -o $(OBJ_OUT)
