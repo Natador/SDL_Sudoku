@@ -53,25 +53,26 @@ int main(int argv, char*args[]) {
 			}
 
 			//Clear the screen
-			SDL_SetRenderDrawColor(myRender, 0xFF, 0xFF, 0xFF, 0xFF);
+			SDL_SetRenderDrawColor(myRender, 255, 255, 255, 255);
 			SDL_RenderClear(myRender);
 
-			//Render red filled quad
-			SDL_Rect fillRect = { SCREEN_WIDTH * 8 / 9 + 1, SCREEN_HEIGHT * 0 / 9, SCREEN_WIDTH / 9, SCREEN_HEIGHT / 9 };
-			SDL_SetRenderDrawColor(myRender, 0xFF, 0x00, 0x00, 0xFF);
-			SDL_RenderFillRect(myRender, &fillRect);
-
 			//Draw a black grid
-			SDL_SetRenderDrawColor(myRender, 0x00, 0x00, 0x00, 0xFF);
+			SDL_SetRenderDrawColor(myRender, 0, 0, 0, 0xFF);
 
 			//Draw vertical lines
-			for (int i = 1; i <= 8; i++) {
+			for (int i = 0; i <= 9; i++) {
 				SDL_RenderDrawLine(myRender, SCREEN_WIDTH * i / 9, 0, SCREEN_WIDTH * i / 9, SCREEN_HEIGHT);
 			}
 
-			for (int i = 1; i <= 8; i++) {
+			for (int i = 0; i <= 9; i++) {
 				SDL_RenderDrawLine(myRender, 0, SCREEN_HEIGHT * i / 9, SCREEN_WIDTH, SCREEN_HEIGHT * i / 9);
 			}
+
+
+			//Render red filled square
+			SDL_Rect fillRect = { SCREEN_WIDTH * 6 / 9 + 1, SCREEN_HEIGHT * 0 / 9 + 1, SCREEN_WIDTH / 9 - 1, SCREEN_HEIGHT / 9 - 1 };
+			SDL_SetRenderDrawColor(myRender, 90, 152, 252, 255);
+			SDL_RenderFillRect(myRender, &fillRect);
 
 			//Update the screen
 			SDL_RenderPresent(myRender);
@@ -131,7 +132,7 @@ bool loadNums(int board[][COLS], char * filename) {
 			}
 		}
 	}
-	if ( !(fclose(fp)) ) {
+	if ( fclose(fp) ) {
 		printf("Error closing file %s!\n", filename);
 		success = 0;
 	}
