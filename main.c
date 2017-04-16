@@ -15,21 +15,30 @@
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 640
 
+typedef struct {
+	int value;
+	bool initial;
+	SDL_Rect square;
+	SDL_Texture * numTexture;
+} tile;
+
 //Global variables to be universally accessed
 //	Variables that start with 'my' are globally accessible.
 SDL_Window* myWindow = NULL;	//The window we'll use
 SDL_Renderer* myRender = NULL;	//The window renderer
-//TTF_Font *myFont = TTF_OpenFont("Sans.ttf", 24);	//The font we will use everywhere
 
+//Function prototypes. Descriptions are listed with each function.
 bool loadNums(int board[][COLS], char * filename);
 void printBoard(int board[][COLS]);
 bool initSDL();
 void closeSDL();
+bool initBoard(tile board[][COLS], TTF_Font * fontFam);
 SDL_Texture * loadString(char * message, TTF_Font * font);
+SDL_Texture * numToText(int num, TTF_Font * font);
 
 int main(int argv, char*args[]) {
-    //Sudoku board, stored as a 2d array
-	int mainboard[9][9] = {0};
+    //Sudoku board, stored as a 2d array of tile structs.
+	tile mainboard[ROWS][COLS];
 
 	//Main loop flag
 	bool quit = false;
@@ -39,28 +48,28 @@ int main(int argv, char*args[]) {
 
 	SDL_Texture * testText = NULL;
 	
+	//TTF font to be used for rendering text and numbers
 	TTF_Font *myFont = NULL;
-
-	//Load the numbers from newboard.txt into the array
-	if (!loadNums(mainboard, "newboard.txt")) {
-		printf("Error loading numbers.\n");
-		quit = 1;
-	}
-	printBoard(mainboard);
 	
     if (!initSDL()) {
 		printf("Error! Failed to initialize!\n");
 	}
 	else {
+		//Loading a specified font to the TTF_Font variable.
 		myFont = TTF_OpenFont("OpenSans-Regular.ttf", 48);
-		SDL_Rect fillRect = { SCREEN_WIDTH * 6 / 9 + 1, SCREEN_HEIGHT * 0 / 9 + 1, SCREEN_WIDTH / 9 - 1, SCREEN_HEIGHT / 9 - 1 };
+
 		if (myFont == NULL) {
 			printf("Font could not be located! TTF error: %s", TTF_GetError());
+			quit = true;
+		}
+		else if ( !initBoard(mainboard, myFont) ) {
+			printf("Error! Grid failed to initialize!\n");
 			quit = true;
 		}
 
 		//Main loop
 		while (!quit) {
+			//Polling for events in the event buffer
 			while (SDL_PollEvent(&e) != 0) {
 				//If the application is closed
 				if (e.type == SDL_QUIT)
@@ -73,33 +82,47 @@ int main(int argv, char*args[]) {
 
 			//Draw a black grid
 			SDL_SetRenderDrawColor(myRender, 0, 0, 0, 0xFF);
-
 			//Draw vertical lines
 			for (int i = 0; i <= 9; i++) {
 				SDL_RenderDrawLine(myRender, SCREEN_WIDTH * i / 9, 0, SCREEN_WIDTH * i / 9, SCREEN_HEIGHT);
 			}
-
+			//Horrizontal lines
 			for (int i = 0; i <= 9; i++) {
 				SDL_RenderDrawLine(myRender, 0, SCREEN_HEIGHT * i / 9, SCREEN_WIDTH, SCREEN_HEIGHT * i / 9);
 			}
+			if ( SDL_RenderCopy(myRender, mainboard[1][1].numTexture, NULL, &(mainboard[1][1].square)) ) {
+				printf("Failed to render texture! Error: %s\n", SDL_GetError() );
+				quit = true;
+			}
+			 /*
+			for (int i = 0; i < ROWS; i++) {
+				for (int j = 0; j < COLS; j++) {
+					//If it is an initial, nonzero value.
+					if (mainboard[i][j].initial) {
+						SDL_RenderCopy(myRender, mainboard[i][j].numTexture, NULL, &(mainboard[i][j].square));
+					}
+				}
+			}
+			*/
 
-			testText = loadString("1", myFont);
+			/*
 			if (testText == NULL) {
 				printf("Texture problems, dawg.\n");
 				break;
 			}
 			else {
 
-			//Render red filled square
+				//Render red filled square
 
-			SDL_RenderCopy(myRender, testText, NULL, &fillRect);
+				SDL_RenderCopy(myRender, testText, NULL, &grid[2][1]);
 			}
+			*/
 			//Update the screen
 			SDL_RenderPresent(myRender);
 		}
 	}
 
-	SDL_DestroyTexture(testText);
+	//SDL_DestroyTexture(testText);
 	closeSDL();
 	
     return 0;
@@ -124,7 +147,7 @@ void printBoard(int board[][COLS]) {
     }
 }
 
-//Loads numbers from a text file into the board
+//Loads numbers from a text file into a 2d int array.
 bool loadNums(int board[][COLS], char * filename) {
 	FILE * fp;
 	int i, j;
@@ -137,8 +160,8 @@ bool loadNums(int board[][COLS], char * filename) {
 		success = false;
 	}
 	else {
-		for (i = 0; i < 9; i++) {
-			for (j = 0; j < 9; j++) {
+		for (i = 0; i < ROWS; i++) {
+			for (j = 0; j < COLS; j++) {
 				if (fscanf(fp, "%d", &board[i][j]) != 1) {
 					printf("Error reading number in file!\n");
 					success = false;
@@ -247,4 +270,62 @@ SDL_Texture * loadString(char * message, TTF_Font * font) {
 		SDL_FreeSurface(surfaceMsg);
 	}
 	return textOut;
+}
+
+//Returns a texture containing a number from the given TTF font. Calls loadString.
+SDL_Texture * numToText(int num, TTF_Font * font) {
+	//String to contain the number. 10 for safety.
+	char number[10];
+
+	SDL_Texture * numTextOut = NULL;
+
+	//Converting the integer, num, to a string in 'number'
+	if (sprintf(number, "%d", num) < 0) {
+		printf("Failed sprintf for some reason.\n");
+	}
+	else {
+		numTextOut = loadString(number, font);
+		if (numTextOut == NULL) {
+			printf("There were errors in numToText. Error: %s\n", SDL_GetError());
+		}
+	}
+	return numTextOut;
+}
+
+//Initializes the 2d array of tile structs with a loaded board, initializes textures as well.
+bool initBoard(tile board[][COLS], TTF_Font * fontFam) {
+	int i, j;	//Looping variables
+	bool success = true; //Flag for successful instantiation
+	int boardVals[ROWS][COLS];
+
+	//Loading the numbers from a textfile into boardVals variable.
+	if (!loadNums(boardVals, "newboard.txt")) {
+		printf("Error loading numbers from textfile!\n");
+		success = false;
+	}
+	else {
+		//Iterates through each tile in the struct array.
+		for (i = 0; i < ROWS; i++) {
+			for (j = 0; j < COLS; j++) {
+				//Loading the values into the struct array and determining if it's an initial value
+				if ( (board[i][j].value = boardVals[i][j]) == 0 ) {
+					board[i][j].initial = true;
+
+					//If it is an initial, nonzero value, load a texture into the member
+					board[i][j].numTexture = numToText(board[i][j].value, fontFam);
+				}
+				else {
+					board[i][j].initial = false;
+					board[i][j].numTexture = NULL;
+				}
+
+				//Initializing the SDL_Rect member in each element
+				board[i][j].square.x = SCREEN_WIDTH * j / 9 + 1;
+				board[i][j].square.y = SCREEN_HEIGHT * i / 9 + 1;
+				board[i][j].square.w = SCREEN_WIDTH / 9 - 1;
+				board[i][j].square.h = SCREEN_HEIGHT / 9 - 1;
+			}
+		}
+	}
+	return success;
 }
