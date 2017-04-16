@@ -17,7 +17,6 @@
 
 typedef struct {
 	int value;
-	bool initial;
 	SDL_Rect square;
 	SDL_Texture * numTexture;
 } tile;
@@ -31,12 +30,14 @@ SDL_Renderer* myRender = NULL;	//The window renderer
 bool loadNums(int board[][COLS], char * filename);
 void printBoard(int board[][COLS]);
 bool initSDL();
-void closeSDL();
+void closeSDL(tile board[][COLS]);
 bool initBoard(tile board[][COLS], TTF_Font * fontFam);
+void renderNums(tile board[][COLS]);
 SDL_Texture * loadString(char * message, TTF_Font * font);
 SDL_Texture * numToText(int num, TTF_Font * font);
+void getGridPos(int x, int y, int * i, int * j);
 
-int main(int argv, char*args[]) {
+int main(int argc, char*argv[]) {
     //Sudoku board, stored as a 2d array of tile structs.
 	tile mainboard[ROWS][COLS];
 
@@ -62,68 +63,54 @@ int main(int argv, char*args[]) {
 			printf("Font could not be located! TTF error: %s", TTF_GetError());
 			quit = true;
 		}
-		else if ( !initBoard(mainboard, myFont) ) {
-			printf("Error! Grid failed to initialize!\n");
+		if ( !initBoard(mainboard, myFont) ) {
+			printf("Error! Failed to initialize!\n");
 			quit = true;
 		}
 
 		//Main loop
 		while (!quit) {
+			//Clear the screen
+			SDL_SetRenderDrawColor(myRender, 255, 255, 255, 255);
+			SDL_RenderClear(myRender);
+			
 			//Polling for events in the event buffer
 			while (SDL_PollEvent(&e) != 0) {
 				//If the application is closed
 				if (e.type == SDL_QUIT)
 					quit = true;
+				else if (e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP) {
+					int x, y, i, j;
+					SDL_GetMouseState(&x, &y);
+					getGridPos(x, y, &i, &j);
+					SDL_SetRenderDrawColor(myRender, 255, 0, 0, 255);
+					SDL_RenderFillRect(myRender, &(mainboard[i][j].square));
+				}
 			}
 
-			//Clear the screen
-			SDL_SetRenderDrawColor(myRender, 255, 255, 255, 255);
-			SDL_RenderClear(myRender);
 
-			//Draw a black grid
+
+			//Draw a black grid. Fancy math keeps the gridlines square even if the window is rectangular.
 			SDL_SetRenderDrawColor(myRender, 0, 0, 0, 0xFF);
 			//Draw vertical lines
 			for (int i = 0; i <= 9; i++) {
-				SDL_RenderDrawLine(myRender, SCREEN_WIDTH * i / 9, 0, SCREEN_WIDTH * i / 9, SCREEN_HEIGHT);
+				SDL_RenderDrawLine(myRender, (SCREEN_WIDTH - SCREEN_HEIGHT)/2 + SCREEN_HEIGHT * i / 9, 0, (SCREEN_WIDTH - SCREEN_HEIGHT)/2 + SCREEN_HEIGHT * i / 9, SCREEN_HEIGHT);
 			}
 			//Horrizontal lines
 			for (int i = 0; i <= 9; i++) {
-				SDL_RenderDrawLine(myRender, 0, SCREEN_HEIGHT * i / 9, SCREEN_WIDTH, SCREEN_HEIGHT * i / 9);
+				SDL_RenderDrawLine(myRender, (SCREEN_WIDTH - SCREEN_HEIGHT) / 2, SCREEN_HEIGHT * i / 9, (SCREEN_WIDTH - SCREEN_HEIGHT) / 2 + SCREEN_HEIGHT, SCREEN_HEIGHT * i / 9);
 			}
-			if ( SDL_RenderCopy(myRender, mainboard[1][1].numTexture, NULL, &(mainboard[1][1].square)) ) {
-				printf("Failed to render texture! Error: %s\n", SDL_GetError() );
-				quit = true;
-			}
-			 /*
-			for (int i = 0; i < ROWS; i++) {
-				for (int j = 0; j < COLS; j++) {
-					//If it is an initial, nonzero value.
-					if (mainboard[i][j].initial) {
-						SDL_RenderCopy(myRender, mainboard[i][j].numTexture, NULL, &(mainboard[i][j].square));
-					}
-				}
-			}
-			*/
 
-			/*
-			if (testText == NULL) {
-				printf("Texture problems, dawg.\n");
-				break;
-			}
-			else {
+			//Render the current board state
+			renderNums(mainboard);
 
-				//Render red filled square
-
-				SDL_RenderCopy(myRender, testText, NULL, &grid[2][1]);
-			}
-			*/
 			//Update the screen
 			SDL_RenderPresent(myRender);
 		}
 	}
 
 	//SDL_DestroyTexture(testText);
-	closeSDL();
+	closeSDL(mainboard);
 	
     return 0;
 }
@@ -233,7 +220,16 @@ bool initSDL() {
 }
 
 //Deallocates memory for textures and closes SDL subsystems
-void closeSDL() {
+void closeSDL(tile board[][COLS]) {
+	//Deallocate textures
+	int i, j;
+	for (i = 0; i < ROWS; i++) {
+		for (j = 0; j < COLS; j++) {
+			SDL_DestroyTexture(board[i][j].numTexture);
+			board[i][j].numTexture = NULL;
+		}
+	}
+	
 	SDL_DestroyRenderer(myRender);
 	SDL_DestroyWindow(myWindow);
 	myWindow = NULL;
@@ -307,17 +303,11 @@ bool initBoard(tile board[][COLS], TTF_Font * fontFam) {
 		//Iterates through each tile in the struct array.
 		for (i = 0; i < ROWS; i++) {
 			for (j = 0; j < COLS; j++) {
-				//Loading the values into the struct array and determining if it's an initial value
-				if ( (board[i][j].value = boardVals[i][j]) == 0 ) {
-					board[i][j].initial = true;
-
-					//If it is an initial, nonzero value, load a texture into the member
-					board[i][j].numTexture = numToText(board[i][j].value, fontFam);
-				}
-				else {
-					board[i][j].initial = false;
-					board[i][j].numTexture = NULL;
-				}
+				//Loading the values into the structure.
+				board[i][j].value = boardVals[i][j];
+				
+				//Load the texture for the appropriate number.
+				board[i][j].numTexture = numToText(board[i][j].value, fontFam);				
 
 				//Initializing the SDL_Rect member in each element
 				board[i][j].square.x = SCREEN_WIDTH * j / 9 + 1;
@@ -328,4 +318,34 @@ bool initBoard(tile board[][COLS], TTF_Font * fontFam) {
 		}
 	}
 	return success;
+}
+
+//Updates the board with the tiles
+void renderNums(tile board[][COLS]) {		
+		//Rendering the numbers initially
+		for (int i = 0; i < ROWS; i++) {
+			for (int j = 0; j < COLS; j++) {
+				//If the number at that square is a nonzero value, render the texture.
+				if (board[i][j].value) {
+					SDL_RenderCopy(myRender, board[i][j].numTexture, NULL, &(board[i][j].square));
+				}
+			}
+		}
+}
+
+//Determines the grid row/column from the x and y position of the mouse
+void getGridPos(int x, int y, int * i, int * j) {
+	int k;
+
+	//Find the row
+	for (k = 0; k < 9; k++) {
+		if (y >= (k * SCREEN_HEIGHT / 9) && y < ((k + 1) * SCREEN_HEIGHT / 9) )
+			*i = k;
+	}
+
+	//Find the column
+	for (k = 0; k < 9; k++) {
+		if (x >= (k * SCREEN_WIDTH / 9) && x < ((k + 1) * SCREEN_WIDTH / 9) )
+			*j = k;
+	}
 }
