@@ -12,8 +12,8 @@
 
 #define ROWS 9
 #define COLS 9
-#define SCREEN_WIDTH 720
-#define SCREEN_HEIGHT 720
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 640
 
 //Global variables to be universally accessed
 //	Variables that start with 'my' are globally accessible.
@@ -46,12 +46,13 @@ int main(int argv, char*args[]) {
 		printf("Error loading numbers.\n");
 		quit = 1;
 	}
-
+	printBoard(mainboard);
+	
     if (!initSDL()) {
 		printf("Error! Failed to initialize!\n");
 	}
 	else {
-		myFont = TTF_OpenFont("lazy.ttf", 48);
+		myFont = TTF_OpenFont("OpenSans-Regular.ttf", 48);
 		SDL_Rect fillRect = { SCREEN_WIDTH * 6 / 9 + 1, SCREEN_HEIGHT * 0 / 9 + 1, SCREEN_WIDTH / 9 - 1, SCREEN_HEIGHT / 9 - 1 };
 		if (myFont == NULL) {
 			printf("Font could not be located! TTF error: %s", TTF_GetError());
@@ -100,6 +101,7 @@ int main(int argv, char*args[]) {
 
 	SDL_DestroyTexture(testText);
 	closeSDL();
+	
     return 0;
 }
 
