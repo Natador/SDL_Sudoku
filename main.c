@@ -15,8 +15,18 @@
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 640
 
+enum states {
+	INACTIVE,
+	ACTIVE,
+	INCORRECT
+};
+
+//Tile datatype. Contains the sudoku value, state of the square, rectangular position and size, and the texture
 typedef struct {
 	int value;
+	int state;
+	bool initial;
+	bool changed;
 	SDL_Rect square;
 	SDL_Texture * numTexture;
 } tile;
@@ -32,10 +42,12 @@ void printBoard(int board[][COLS]);
 bool initSDL();
 void closeSDL(tile board[][COLS]);
 bool initBoard(tile board[][COLS], TTF_Font * fontFam);
-void renderNums(tile board[][COLS]);
+void renderNums(tile board[][COLS], TTF_Font * font);
 SDL_Texture * loadString(char * message, TTF_Font * font);
 SDL_Texture * numToText(int num, TTF_Font * font);
 void getGridPos(int x, int y, int * i, int * j);
+void renderColors(tile board[][COLS]);
+void clearStates(tile board[][COLS]);
 
 int main(int argc, char*argv[]) {
     //Sudoku board, stored as a 2d array of tile structs.
@@ -46,16 +58,17 @@ int main(int argc, char*argv[]) {
 
 	//Event handler
 	SDL_Event e;
-
-	SDL_Texture * testText = NULL;
 	
 	//TTF font to be used for rendering text and numbers
 	TTF_Font *myFont = NULL;
 	
+	printf("%d\n%d\n%d\n", SDLK_0, SDLK_1, SDLK_2);
+
     if (!initSDL()) {
 		printf("Error! Failed to initialize!\n");
 	}
 	else {
+		int i = 100, j = 100;
 		//Loading a specified font to the TTF_Font variable.
 		myFont = TTF_OpenFont("OpenSans-Regular.ttf", 48);
 
@@ -64,31 +77,41 @@ int main(int argc, char*argv[]) {
 			quit = true;
 		}
 		if ( !initBoard(mainboard, myFont) ) {
-			printf("Error! Failed to initialize!\n");
+			printf("Error! Failed to initialize board!\n");
 			quit = true;
 		}
 
 		//Main loop
 		while (!quit) {
-			//Clear the screen
-			SDL_SetRenderDrawColor(myRender, 255, 255, 255, 255);
-			SDL_RenderClear(myRender);
-			
 			//Polling for events in the event buffer
 			while (SDL_PollEvent(&e) != 0) {
 				//If the application is closed
 				if (e.type == SDL_QUIT)
 					quit = true;
+				//If a mousekey is clicked
 				else if (e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP) {
-					int x, y, i, j;
+					int x, y;
 					SDL_GetMouseState(&x, &y);
 					getGridPos(x, y, &i, &j);
-					SDL_SetRenderDrawColor(myRender, 255, 0, 0, 255);
-					SDL_RenderFillRect(myRender, &(mainboard[i][j].square));
+					clearStates(mainboard);
+					if (e.button.button == SDL_BUTTON_LEFT)
+						mainboard[i][j].state = ACTIVE;
+				}
+				else if (e.type == SDL_KEYDOWN) {
+					//Change number based on key press
+					for (int k = 0; k < 10; k++) {
+						if (e.key.keysym.sym == SDLK_0 + k) {
+								mainboard[i][j].value = k;
+								mainboard[i][j].changed = true;
+								break;
+						}
+					}
 				}
 			}
 
-
+			//Clear the screen
+			SDL_SetRenderDrawColor(myRender, 255, 255, 255, 255);
+			SDL_RenderClear(myRender);
 
 			//Draw a black grid. Fancy math keeps the gridlines square even if the window is rectangular.
 			SDL_SetRenderDrawColor(myRender, 0, 0, 0, 0xFF);
@@ -101,8 +124,11 @@ int main(int argc, char*argv[]) {
 				SDL_RenderDrawLine(myRender, (SCREEN_WIDTH - SCREEN_HEIGHT) / 2, SCREEN_HEIGHT * i / 9, (SCREEN_WIDTH - SCREEN_HEIGHT) / 2 + SCREEN_HEIGHT, SCREEN_HEIGHT * i / 9);
 			}
 
+			//Renders the colors of each tile based on its state
+			renderColors(mainboard);
+
 			//Render the current board state
-			renderNums(mainboard);
+			renderNums(mainboard, myFont);
 
 			//Update the screen
 			SDL_RenderPresent(myRender);
@@ -305,9 +331,18 @@ bool initBoard(tile board[][COLS], TTF_Font * fontFam) {
 			for (j = 0; j < COLS; j++) {
 				//Loading the values into the structure.
 				board[i][j].value = boardVals[i][j];
+
+				//Sets the default state to inactive
+				board[i][j].state = INACTIVE;
+
+				//Sets initial state
+				board[i][j].initial = true;
 				
-				//Load the texture for the appropriate number.
-				board[i][j].numTexture = numToText(board[i][j].value, fontFam);				
+				//Sets changed state
+				board[i][j].changed = true;
+
+				//Sets texture
+				board[i][j].numTexture = numToText(board[i][j].value, fontFam);
 
 				//Initializing the SDL_Rect member in each element
 				board[i][j].square.x = SCREEN_WIDTH * j / 9 + 1;
@@ -321,12 +356,17 @@ bool initBoard(tile board[][COLS], TTF_Font * fontFam) {
 }
 
 //Updates the board with the tiles
-void renderNums(tile board[][COLS]) {		
+void renderNums(tile board[][COLS], TTF_Font * font) {		
 		//Rendering the numbers initially
 		for (int i = 0; i < ROWS; i++) {
 			for (int j = 0; j < COLS; j++) {
 				//If the number at that square is a nonzero value, render the texture.
 				if (board[i][j].value) {
+					if (board[i][j].changed) {
+						SDL_DestroyTexture(board[i][j].numTexture);
+						board[i][j].numTexture = numToText(board[i][j].value, font);
+						board[i][j].changed = false;
+					}
 					SDL_RenderCopy(myRender, board[i][j].numTexture, NULL, &(board[i][j].square));
 				}
 			}
@@ -347,5 +387,35 @@ void getGridPos(int x, int y, int * i, int * j) {
 	for (k = 0; k < 9; k++) {
 		if (x >= (k * SCREEN_WIDTH / 9) && x < ((k + 1) * SCREEN_WIDTH / 9) )
 			*j = k;
+	}
+}
+
+//Fills the color of each tile with an appropriate color based on its state.
+void renderColors(tile board[][COLS]) {
+	int i, j;	//Indexing variables
+	
+	//Loops through the board and fills the color of the rect based on the tile's state.
+	for (i = 0; i < ROWS; i++) {
+		for (j = 0; j < COLS; j++) {
+			switch (board[i][j].state) {
+				case ACTIVE:
+					SDL_SetRenderDrawColor(myRender, 232, 214, 99, 255);
+					SDL_RenderFillRect(myRender, &(board[i][j].square));
+					break;
+				case INCORRECT:
+					SDL_SetRenderDrawColor(myRender, 237, 87, 87, 255);
+					SDL_RenderFillRect(myRender, &(board[i][j].square));
+					break;
+			}
+		}
+	}
+}
+
+//Clears all states on the board
+void clearStates(tile board[][COLS]) {
+	int i, j;
+	for (i = 0; i < ROWS; i++) {
+		for (j = 0; j < COLS; j++)
+			board[i][j].state = INACTIVE;
 	}
 }
