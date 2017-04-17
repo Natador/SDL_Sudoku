@@ -116,13 +116,25 @@ int main(int argc, char*argv[]) {
 					for (int k = 0; k < 10; k++) {
 						//If the key is a numeral
 						if (e.key.keysym.sym == SDLK_0 + k) {
+							if (mainboard[i][j].initial) {
+								mainboard[i][j].state = INCORRECT;
+							}
+							else {
 								mainboard[i][j].value = k;
-								mainboard[i][j].changed = true; //Update flag for renderNums
+
+								//Update flag for renderNums
+								mainboard[i][j].changed = true;
+
+								//Check to see if the move is valid and set the state of the tile
+								//checkMove(mainboard, i, j);
 								break;
+							}
 						}
 					}
 				}
 			}
+
+			//Check to see if it's a win, i.e. no zeros and no incorrect moves
 
 			//Clear the screen
 			SDL_SetRenderDrawColor(myRender, 255, 255, 255, 255);
@@ -350,11 +362,21 @@ bool initBoard(tile board[][COLS], TTF_Font * fontFam) {
 				//Sets the default state to inactive
 				board[i][j].state = INACTIVE;
 
-				//Sets initial state
-				board[i][j].initial = true;
-				
 				//Sets changed state
 				board[i][j].changed = true;
+
+				//If the value is nonzero, set the texture
+				if(board[i][j].value) {
+					//Sets texture
+					board[i][j].numTexture = numToText(board[i][j].value, fontFam);
+
+					//Sets initial state to true so it won't be modified
+					board[i][j].initial = true;
+				}
+				else {
+					//Sets initial state
+					board[i][j].initial = false;
+				}
 
 				//Sets texture
 				board[i][j].numTexture = numToText(board[i][j].value, fontFam);
