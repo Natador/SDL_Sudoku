@@ -53,6 +53,7 @@ void renderColors(tile board[][COLS]);
 //Main game functions
 void getGridPos(int x, int y, int * i, int * j);
 void clearStates(tile board[][COLS]);
+void checkMove(tile board[][COLS], int row, int col);
 
 //Debugging functions
 void printBoard(int board[][COLS]);
@@ -74,7 +75,12 @@ int main(int argc, char*argv[]) {
 		printf("Error! Failed to initialize!\n");
 	}
 	else {
+		//Index variables for mouse and keyboard events.
 		int i = 100, j = 100;
+		
+		//Flag for an active tile.
+		bool isActive = false;
+
 		//Loading a specified font to the TTF_Font variable.
 		myFont = TTF_OpenFont("OpenSans-Regular.ttf", 48);
 
@@ -104,14 +110,24 @@ int main(int argc, char*argv[]) {
 					//Turns the mouse position into grid indicies.
 					getGridPos(x, y, &i, &j);
 
-					//Clears previous states
+					//Clears previous states except incorrect ones
 					clearStates(mainboard);
 
 					//Changes the current tile to the active state so it is highlighted later
-					if (e.button.button == SDL_BUTTON_LEFT)
+					if (e.button.button == SDL_BUTTON_LEFT){
 						mainboard[i][j].state = ACTIVE;
+						isActive = true;
+					}
+					//Right click causes the tile to become inactive
+					else {
+						if (mainboard[i][j].state == ACTIVE) {
+							mainboard[i][j].state = INACTIVE;
+						}
+						isActive = false;
+					}
 				}
-				else if (e.type == SDL_KEYDOWN) {
+				//A key was pressed and a previous tile was selected
+				else if (e.type == SDL_KEYDOWN && isActive) {
 					//Change number based on key press
 					for (int k = 0; k < 10; k++) {
 						//If the key is a numeral
@@ -125,8 +141,8 @@ int main(int argc, char*argv[]) {
 								//Update flag for renderNums
 								mainboard[i][j].changed = true;
 
-								//Check to see if the move is valid and set the state of the tile
-								//checkMove(mainboard, i, j);
+								//Check to see if the move is valid and set the state of the tile accordingly
+								checkMove(mainboard, i, j);
 								break;
 							}
 						}
@@ -353,6 +369,7 @@ bool initBoard(tile board[][COLS], TTF_Font * fontFam) {
 		success = false;
 	}
 	else {
+		printBoard(boardVals);
 		//Iterates through each tile in the struct array.
 		for (i = 0; i < ROWS; i++) {
 			for (j = 0; j < COLS; j++) {
@@ -393,7 +410,7 @@ bool initBoard(tile board[][COLS], TTF_Font * fontFam) {
 }
 
 //Updates the board with the tiles
-void renderNums(tile board[][COLS], TTF_Font * font) {		
+void renderNums(tile board[][COLS], TTF_Font * font) {
 		//Rendering the numbers initially
 		for (int i = 0; i < ROWS; i++) {
 			for (int j = 0; j < COLS; j++) {
@@ -460,11 +477,58 @@ void renderColors(tile board[][COLS]) {
 	}
 }
 
-//Clears all states on the board
+//Clears all states on the board except incorrect states and win states
 void clearStates(tile board[][COLS]) {
 	int i, j;
 	for (i = 0; i < ROWS; i++) {
 		for (j = 0; j < COLS; j++)
-			board[i][j].state = INACTIVE;
+			//Catches any INCORRECT or WIN states. Sets all others to INACTIVE
+			if (board[i][j].state == INCORRECT);
+			else if (board[i][j].state == WIN);
+			else {
+				board[i][j].state = INACTIVE;
+			}
 	}
+}
+
+//Checks in the correct row, column, and subsection to see if the digit is repeated.
+//	Flags the tile at [row][col] as INCORRECT if so
+void checkMove(tile board[][COLS], int row, int col) {
+	int i, j, subrow, subcol;
+	printf("i = %d, j = %d\n", row, col);
+	//Checking for a valid index. Causes problems on entry.
+	//if (row <= ROWS && col <= COLS) {
+		if (board[row][col].value) {
+			//Checking the values within the row of the given square
+			for (j = 0; j < COLS; j++) {
+				if (board[row][j].value == board[row][col].value && j != col) {
+					board[row][col].state = INCORRECT;
+					printf("Row confliction!\n");
+				}
+			}
+
+			//Checking the values within the column of the given square
+			for (i = 0; i < ROWS; i++) {
+				if (board[i][col].value == board[row][col].value && i != row) {
+					board[row][col].state = INCORRECT;
+					printf("Column confliction!\n");
+				}
+			}
+
+			//Checking the subsquare which contains the [row][col] value.
+			subrow = row / 3;
+			subcol = col / 3;
+			for (i = 0; i < 3; i++) {
+				for (j = 0; j < 3; j++) {
+					if (board[row][col].value == board[subrow + i][subcol + j].value && (subrow + i != row) && (subcol + j != col)) {
+						board[row][col].state = INCORRECT;
+						printf("Subsquare confliction!\n");
+					}
+				}
+			}
+		}
+		else {
+			board[row][col].state = ACTIVE;
+		}
+	//}
 }
