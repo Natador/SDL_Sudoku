@@ -125,6 +125,9 @@ int main(int argc, char*argv[]) {
 						}
 						isActive = false;
 					}
+					if (isActive) {
+						checkMove(mainboard, i, j);
+					}
 				}
 				//A key was pressed and a previous tile was selected
 				else if (e.type == SDL_KEYDOWN && isActive) {
@@ -495,6 +498,7 @@ void clearStates(tile board[][COLS]) {
 //	Flags the tile at [row][col] as INCORRECT if so
 void checkMove(tile board[][COLS], int row, int col) {
 	int i, j, subrow, subcol;
+	bool fine = true;
 	printf("i = %d, j = %d\n", row, col);
 	//Checking for a valid index. Causes problems on entry.
 	//if (row <= ROWS && col <= COLS) {
@@ -504,6 +508,7 @@ void checkMove(tile board[][COLS], int row, int col) {
 				if (board[row][j].value == board[row][col].value && j != col) {
 					board[row][col].state = INCORRECT;
 					printf("Row confliction!\n");
+					fine = false;
 				}
 			}
 
@@ -512,6 +517,7 @@ void checkMove(tile board[][COLS], int row, int col) {
 				if (board[i][col].value == board[row][col].value && i != row) {
 					board[row][col].state = INCORRECT;
 					printf("Column confliction!\n");
+					fine = false;
 				}
 			}
 
@@ -520,11 +526,15 @@ void checkMove(tile board[][COLS], int row, int col) {
 			subcol = col / 3;
 			for (i = 0; i < 3; i++) {
 				for (j = 0; j < 3; j++) {
-					if (board[row][col].value == board[subrow + i][subcol + j].value && (subrow + i != row) && (subcol + j != col)) {
+					if (board[row][col].value == board[subrow + i][subcol + j].value && (subrow*3 + i != row) && (subcol*3 + j != col)) {
 						board[row][col].state = INCORRECT;
 						printf("Subsquare confliction!\n");
-					}
+						fine = false;
+					}				
 				}
+			}
+			if (fine) {
+				board[row][col].state = ACTIVE;
 			}
 		}
 		else {
