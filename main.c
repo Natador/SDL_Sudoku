@@ -385,9 +385,6 @@ bool initBoard(tile board[][COLS], TTF_Font * fontFam) {
 
 				//If the value is nonzero, set the texture
 				if(board[i][j].value) {
-					//Sets texture
-					board[i][j].numTexture = numToText(board[i][j].value, fontFam);
-
 					//Sets initial state to true so it cannot be modified
 					board[i][j].isInitial = true;
 				}
@@ -396,6 +393,9 @@ bool initBoard(tile board[][COLS], TTF_Font * fontFam) {
 					board[i][j].isInitial = false;
 				}
 
+				//Sets texture
+				board[i][j].numTexture = numToText(board[i][j].value, fontFam);
+				
 				//Initializing the SDL_Rect member in each element
 				board[i][j].square.x = SCREEN_WIDTH * j / 9 + 1;
 				board[i][j].square.y = SCREEN_HEIGHT * i / 9 + 1;
@@ -522,7 +522,7 @@ void checkMove(tile board[][COLS], int row, int col) {
 		subcol = col / 3;
 		for (i = 0; i < 3; i++) {
 			for (j = 0; j < 3; j++) {
-				if (board[row][col].value == board[subrow + i][subcol + j].value && (subrow*3 + i != row) && (subcol*3 + j != col)) {
+				if (board[row][col].value == board[subrow*3 + i][subcol*3 + j].value && (subrow*3 + i != row) && (subcol*3 + j != col)) {
 					board[row][col].isError = true;
 					printf("Subsquare confliction!\n");
 					isFine = false;
