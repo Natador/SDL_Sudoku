@@ -43,6 +43,7 @@ SDL_Texture * numToText(int num, TTF_Font * font);
 //Rendering functions
 void renderNums(tile board[][COLS], TTF_Font * font);
 void renderColors(tile board[][COLS]);
+void drawGrid(void);
 
 //Main game functions
 void getGridPos(int x, int y, int * i, int * j);
@@ -145,22 +146,12 @@ int main(int argc, char*argv[]) {
 				}
 			}
 
-			//Check to see if it's a win, i.e. no zeros and no incorrect moves
-
 			//Clear the screen
 			SDL_SetRenderDrawColor(myRender, 255, 255, 255, 255);
 			SDL_RenderClear(myRender);
 
-			//Draw a black grid. Fancy math keeps the gridlines square even if the window is rectangular.
-			SDL_SetRenderDrawColor(myRender, 0, 0, 0, 0xFF);
-			//Draw vertical lines
-			for (int i = 0; i <= 9; i++) {
-				SDL_RenderDrawLine(myRender, (SCREEN_WIDTH - SCREEN_HEIGHT)/2 + SCREEN_HEIGHT * i / 9, 0, (SCREEN_WIDTH - SCREEN_HEIGHT)/2 + SCREEN_HEIGHT * i / 9, SCREEN_HEIGHT);
-			}
-			//Horrizontal lines
-			for (int i = 0; i <= 9; i++) {
-				SDL_RenderDrawLine(myRender, (SCREEN_WIDTH - SCREEN_HEIGHT) / 2, SCREEN_HEIGHT * i / 9, (SCREEN_WIDTH - SCREEN_HEIGHT) / 2 + SCREEN_HEIGHT, SCREEN_HEIGHT * i / 9);
-			}
+			//Draw the grid
+			drawGrid();
 
 			//Renders the colors of each tile based on its state
 			renderColors(mainboard);
@@ -200,12 +191,15 @@ void printBoard(int board[][COLS]) {
 
 //Loads numbers from a text file into a 2d int array.
 bool loadNums(int board[][COLS], char * filename) {
-	FILE * fp;
+	FILE * fp = NULL;
 	int i, j;
 	char ch;
 	bool success = true;
 
+	//Open the file
 	fp = fopen(filename, "r");
+
+	//If the file was not opened
 	if (fp == NULL) {
 		printf("Error opening file %s\n", filename);
 		success = false;
@@ -228,6 +222,8 @@ bool loadNums(int board[][COLS], char * filename) {
 			}
 		}
 	}
+
+	//Close the file.
 	if ( fclose(fp) ) {
 		printf("Error closing file %s!\n", filename);
 		success = 0;
@@ -432,6 +428,20 @@ void renderNums(tile board[][COLS], TTF_Font * font) {
 		}
 }
 
+//Draws the black grid on the board
+void drawGrid(void) {
+		//Draw a black grid. Fancy math keeps the gridlines square even if the window is rectangular.
+		SDL_SetRenderDrawColor(myRender, 0, 0, 0, 0xFF);
+		//Draw vertical lines
+		for (int i = 0; i <= 9; i++) {
+			SDL_RenderDrawLine(myRender, (SCREEN_WIDTH - SCREEN_HEIGHT)/2 + SCREEN_HEIGHT * i / 9, 0, (SCREEN_WIDTH - SCREEN_HEIGHT)/2 + SCREEN_HEIGHT * i / 9, SCREEN_HEIGHT);
+		}
+		//Horrizontal lines
+		for (int i = 0; i <= 9; i++) {
+			SDL_RenderDrawLine(myRender, (SCREEN_WIDTH - SCREEN_HEIGHT) / 2, SCREEN_HEIGHT * i / 9, (SCREEN_WIDTH - SCREEN_HEIGHT) / 2 + SCREEN_HEIGHT, SCREEN_HEIGHT * i / 9);
+		}
+}
+
 //Determines the grid row/column from the x and y position of the mouse
 void getGridPos(int x, int y, int * i, int * j) {
 	int k;
@@ -530,6 +540,8 @@ void checkMove(tile board[][COLS], int row, int col) {
 			}
 		}
 	}
+	//If there were no errors, reset the error state to false.
+	//Useful when correcting an error in the board.
 	if (isFine) {
 		board[row][col].isError = false;
 	}
