@@ -25,8 +25,9 @@ enum states {
 //Tile datatype. Contains the sudoku value, state of the square, rectangular position and size, and the texture
 typedef struct {
 	int value;		//numeric value stored in the tile
-	int state;		//State of the tile used for coloring tiles
-	bool initial;	//Was this initially loaded? Can it be modified?
+	bool isInitial;	//Was this initially loaded? Can it be modified?
+	bool isActive;	//Is the tile active, i.e. was it clicked?
+	bool isError;	//Is the tile correct? Is there a game rule conflict?
 	bool changed;	//Change flag for updating the number texture
 	SDL_Rect square;	//Rectangle containing position and size of each tile
 	SDL_Texture * numTexture;	//Pointer to the texture for the number in the tile
@@ -52,7 +53,7 @@ void renderColors(tile board[][COLS]);
 
 //Main game functions
 void getGridPos(int x, int y, int * i, int * j);
-void clearStates(tile board[][COLS]);
+void clearActiveStates(tile board[][COLS]);
 void checkMove(tile board[][COLS], int row, int col);
 
 //Debugging functions
@@ -79,7 +80,7 @@ int main(int argc, char*argv[]) {
 		int i = 100, j = 100;
 		
 		//Flag for an active tile.
-		bool isActive = false;
+		bool tileActive = false;
 
 		//Loading a specified font to the TTF_Font variable.
 		myFont = TTF_OpenFont("OpenSans-Regular.ttf", 48);
@@ -110,35 +111,33 @@ int main(int argc, char*argv[]) {
 					//Turns the mouse position into grid indicies.
 					getGridPos(x, y, &i, &j);
 
-					//Clears previous states except incorrect ones
-					clearStates(mainboard);
+					//Sets all tiles to inactive
+					clearActiveStates(mainboard);
 
 					//Changes the current tile to the active state so it is highlighted later
 					if (e.button.button == SDL_BUTTON_LEFT){
-						mainboard[i][j].state = ACTIVE;
-						isActive = true;
+						mainboard[i][j].isActive = true;
+						tileActive = true;
 					}
 					//Right click causes the tile to become inactive
 					else {
-						if (mainboard[i][j].state == ACTIVE) {
-							mainboard[i][j].state = INACTIVE;
+						if (mainboard[i][j].isActive) {
+							mainboard[i][j].isActive = false;
 						}
-						isActive = false;
+						tileActive = false;
 					}
-					if (isActive) {
+					if (tileActive) {
 						checkMove(mainboard, i, j);
 					}
 				}
 				//A key was pressed and a previous tile was selected
-				else if (e.type == SDL_KEYDOWN && isActive) {
+				else if (e.type == SDL_KEYDOWN && tileActive) {
 					//Change number based on key press
 					for (int k = 0; k < 10; k++) {
 						//If the key is a numeral
-						if (e.key.keysym.sym == SDLK_0 + k) {
-							if (mainboard[i][j].initial) {
-								mainboard[i][j].state = INCORRECT;
-							}
-							else {
+						if ( (e.key.keysym.sym == SDLK_0 + k) || (e.key.keysym.sym == SDLK_DELETE) ) {
+							//If it is not an initial state
+							if (mainboard[i][j].isInitial == false) {
 								mainboard[i][j].value = k;
 
 								//Update flag for renderNums
@@ -297,8 +296,10 @@ void closeSDL(tile board[][COLS]) {
 	int i, j;
 	for (i = 0; i < ROWS; i++) {
 		for (j = 0; j < COLS; j++) {
-			SDL_DestroyTexture(board[i][j].numTexture);
-			board[i][j].numTexture = NULL;
+			if (board[i][j].numTexture != NULL) {
+				SDL_DestroyTexture(board[i][j].numTexture);
+				board[i][j].numTexture = NULL;
+			}
 		}
 	}
 	
@@ -309,6 +310,7 @@ void closeSDL(tile board[][COLS]) {
 
 	//Quit SDL subsystems
 	//IMG_Quit();
+	TTF_Quit();
 	SDL_Quit();
 }
 
@@ -379,27 +381,27 @@ bool initBoard(tile board[][COLS], TTF_Font * fontFam) {
 				//Loading the values into the structure.
 				board[i][j].value = boardVals[i][j];
 
-				//Sets the default state to inactive
-				board[i][j].state = INACTIVE;
+				//Sets the default active state of the tile to false.
+				board[i][j].isActive = false;
 
-				//Sets changed state
-				board[i][j].changed = true;
+				//Sets the default error state to false.
+				board[i][j].isError = false;
+
+				//Sets changed state to false because they aren't changed.
+				board[i][j].changed = false;
 
 				//If the value is nonzero, set the texture
 				if(board[i][j].value) {
 					//Sets texture
 					board[i][j].numTexture = numToText(board[i][j].value, fontFam);
 
-					//Sets initial state to true so it won't be modified
-					board[i][j].initial = true;
+					//Sets initial state to true so it cannot be modified
+					board[i][j].isInitial = true;
 				}
 				else {
 					//Sets initial state
-					board[i][j].initial = false;
+					board[i][j].isInitial = false;
 				}
-
-				//Sets texture
-				board[i][j].numTexture = numToText(board[i][j].value, fontFam);
 
 				//Initializing the SDL_Rect member in each element
 				board[i][j].square.x = SCREEN_WIDTH * j / 9 + 1;
@@ -461,36 +463,38 @@ void renderColors(tile board[][COLS]) {
 	//Loops through the board and fills the color of the rect based on the tile's state.
 	for (i = 0; i < ROWS; i++) {
 		for (j = 0; j < COLS; j++) {
-			//No default case because the renderer automatically clears the board each loop.
-			switch (board[i][j].state) {
-				case ACTIVE:
-					SDL_SetRenderDrawColor(myRender, 232, 214, 99, 255);
-					SDL_RenderFillRect(myRender, &(board[i][j].square));
-					break;
-				case INCORRECT:
-					SDL_SetRenderDrawColor(myRender, 237, 87, 87, 255);
-					SDL_RenderFillRect(myRender, &(board[i][j].square));
-					break;
-				case WIN:
-					SDL_SetRenderDrawColor(myRender, 41, 209, 44, 255);
-					SDL_RenderFillRect(myRender, &(board[i][j].square));
-					break;
+			//If the tile was an initial tile, fill blue
+			if (board[i][j].isInitial) {
+				SDL_SetRenderDrawColor(myRender, 130, 177, 255, 255);
+				SDL_RenderFillRect(myRender, &(board[i][j].square));
 			}
+			//If the tile is active, fill yellowish
+			else if (board[i][j].isActive) {
+				if (board[i][j].isError) {
+					SDL_SetRenderDrawColor(myRender, 232, 130, 99, 255);
+				}
+				else {
+					SDL_SetRenderDrawColor(myRender, 232, 214, 99, 255);
+				}
+				SDL_RenderFillRect(myRender, &(board[i][j].square));
+			}
+			//If the tile is an error, fill redish
+			else if (board[i][j].isError) {
+				SDL_SetRenderDrawColor(myRender, 237, 87, 87, 255);
+				SDL_RenderFillRect(myRender, &(board[i][j].square));
+			}
+			//No else condition because the renderer automatically clears all rects to white each loop.
 		}
 	}
 }
 
-//Clears all states on the board except incorrect states and win states
-void clearStates(tile board[][COLS]) {
+//Clears all active states on the board.
+void clearActiveStates(tile board[][COLS]) {
 	int i, j;
 	for (i = 0; i < ROWS; i++) {
-		for (j = 0; j < COLS; j++)
-			//Catches any INCORRECT or WIN states. Sets all others to INACTIVE
-			if (board[i][j].state == INCORRECT);
-			else if (board[i][j].state == WIN);
-			else {
-				board[i][j].state = INACTIVE;
-			}
+		for (j = 0; j < COLS; j++){
+			board[i][j].isActive = false;
+		}
 	}
 }
 
@@ -498,47 +502,42 @@ void clearStates(tile board[][COLS]) {
 //	Flags the tile at [row][col] as INCORRECT if so
 void checkMove(tile board[][COLS], int row, int col) {
 	int i, j, subrow, subcol;
-	bool fine = true;
-	printf("i = %d, j = %d\n", row, col);
-	//Checking for a valid index. Causes problems on entry.
-	//if (row <= ROWS && col <= COLS) {
-		if (board[row][col].value) {
-			//Checking the values within the row of the given square
-			for (j = 0; j < COLS; j++) {
-				if (board[row][j].value == board[row][col].value && j != col) {
-					board[row][col].state = INCORRECT;
-					printf("Row confliction!\n");
-					fine = false;
-				}
-			}
+	bool isFine = true;
 
-			//Checking the values within the column of the given square
-			for (i = 0; i < ROWS; i++) {
-				if (board[i][col].value == board[row][col].value && i != row) {
-					board[row][col].state = INCORRECT;
-					printf("Column confliction!\n");
-					fine = false;
-				}
-			}
-
-			//Checking the subsquare which contains the [row][col] value.
-			subrow = row / 3;
-			subcol = col / 3;
-			for (i = 0; i < 3; i++) {
-				for (j = 0; j < 3; j++) {
-					if (board[row][col].value == board[subrow + i][subcol + j].value && (subrow*3 + i != row) && (subcol*3 + j != col)) {
-						board[row][col].state = INCORRECT;
-						printf("Subsquare confliction!\n");
-						fine = false;
-					}				
-				}
-			}
-			if (fine) {
-				board[row][col].state = ACTIVE;
+	//Checking if the value is nonzero
+	if (board[row][col].value) {
+		//Checking the values within the row of the given square
+		for (j = 0; j < COLS; j++) {
+			if (board[row][j].value == board[row][col].value && j != col) {
+				board[row][col].isError = true;
+				printf("Row confliction!\n");
+				isFine = false;
 			}
 		}
-		else {
-			board[row][col].state = ACTIVE;
+
+		//Checking the values within the column of the given square
+		for (i = 0; i < ROWS; i++) {
+			if (board[i][col].value == board[row][col].value && i != row) {
+				board[row][col].isError = true;
+				printf("Column confliction!\n");
+				isFine = false;
+			}
 		}
-	//}
+
+		//Checking the subsquare which contains the [row][col] value.
+		subrow = row / 3;
+		subcol = col / 3;
+		for (i = 0; i < 3; i++) {
+			for (j = 0; j < 3; j++) {
+				if (board[row][col].value == board[subrow + i][subcol + j].value && (subrow*3 + i != row) && (subcol*3 + j != col)) {
+					board[row][col].isError = true;
+					printf("Subsquare confliction!\n");
+					isFine = false;
+				}				
+			}
+		}
+	}
+	if (isFine) {
+		board[row][col].isError = false;
+	}
 }
