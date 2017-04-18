@@ -15,13 +15,6 @@
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 640
 
-enum states {
-	INACTIVE,
-	ACTIVE,
-	INCORRECT,
-	WIN
-};
-
 //Tile datatype. Contains the sudoku value, state of the square, rectangular position and size, and the texture
 typedef struct {
 	int value;		//numeric value stored in the tile
