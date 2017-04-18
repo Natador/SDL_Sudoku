@@ -28,8 +28,8 @@ typedef struct {
 
 //Global variables to be universally accessed
 //	Variables that start with 'my' are globally accessible.
-SDL_Window* myWindow = NULL;	//The window we'll use
-SDL_Renderer* myRender = NULL;	//The window renderer
+SDL_Window * myWindow = NULL;	//The window we'll use
+SDL_Renderer * myRender = NULL;	//The window renderer
 
 //Function prototypes. Descriptions are listed with each function.
 //Initialization functions
@@ -53,7 +53,7 @@ void checkMove(tile board[][COLS], int row, int col);
 //Debugging functions
 void printBoard(int board[][COLS]);
 
-int main(int argc, char*argv[]) {
+int main(int argc, char * argv[]) {
     //Sudoku board, stored as a 2d array of tile structs.
 	tile mainboard[ROWS][COLS];
 
@@ -77,7 +77,7 @@ int main(int argc, char*argv[]) {
 		bool tileActive = false;
 
 		//Loading a specified font to the TTF_Font variable.
-		myFont = TTF_OpenFont("OpenSans-Regular.ttf", 48);
+		myFont = TTF_OpenFont("fonts/OpenSans-Regular.ttf", 48);
 
 		if (myFont == NULL) {
 			printf("Font could not be located! TTF error: %s", TTF_GetError());
@@ -129,7 +129,7 @@ int main(int argc, char*argv[]) {
 					//Change number based on key press
 					for (int k = 0; k < 10; k++) {
 						//If the key is a numeral
-						if ( (e.key.keysym.sym == SDLK_0 + k) || (e.key.keysym.sym == SDLK_DELETE) ) {
+						if ( (e.key.keysym.sym == SDLK_0 + k) || (e.key.keysym.sym == SDLK_DELETE) || (e.key.keysym.sym == SDLK_SPACE) ) {
 							//If it is not an initial state
 							if (mainboard[i][j].isInitial == false) {
 								mainboard[i][j].value = k;
@@ -358,7 +358,7 @@ bool initBoard(tile board[][COLS], TTF_Font * fontFam) {
 	int boardVals[ROWS][COLS];
 
 	//Loading the numbers from a textfile into boardVals variable.
-	if (!loadNums(boardVals, "newboard.txt")) {
+	if (!loadNums(boardVals, "boards/newboard.txt")) {
 		printf("Error loading numbers from textfile!\n");
 		success = false;
 	}
