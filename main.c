@@ -129,7 +129,7 @@ int main(int argc, char * argv[]) {
 					//Change number based on key press
 					for (int k = 0; k < 10; k++) {
 						//If the key is a numeral
-						if ( (e.key.keysym.sym == SDLK_0 + k) || (e.key.keysym.sym == SDLK_DELETE) || (e.key.keysym.sym == SDLK_SPACE) ) {
+						if ( (e.key.keysym.sym == SDLK_0 + k) || (e.key.keysym.sym == SDLK_DELETE) || (e.key.keysym.sym == SDLK_SPACE) || (e.key.keysym.sym == SDLK_BACKSPACE) ) {
 							//If it is not an initial state
 							if (mainboard[i][j].isInitial == false) {
 								mainboard[i][j].value = k;
