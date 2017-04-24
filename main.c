@@ -11,7 +11,7 @@
 #include <SDL2/SDL_ttf.h>
 
 #define ROWS 9
-#define COLS 9void saveGame(tile board[][COLS])
+#define COLS 9
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 640
 
