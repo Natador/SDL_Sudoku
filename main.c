@@ -77,7 +77,7 @@ int main(int argc, char * argv[]) {
 		bool tileActive = false;
 
 		//Loading a specified font to the TTF_Font variable.
-		myFont = TTF_OpenFont("fonts/OpenSans-Regular.ttf", 48);
+		myFont = TTF_OpenFont("fonts/OpenSans-Regular.ttf", 100);
 
 		if (myFont == NULL) {
 			printf("Font could not be located! TTF error: %s", TTF_GetError());
@@ -151,14 +151,15 @@ int main(int argc, char * argv[]) {
 			SDL_SetRenderDrawColor(myRender, 255, 255, 255, 255);
 			SDL_RenderClear(myRender);
 
-			//Draw the grid
-			drawGrid();
+
 
 			//Renders the colors of each tile based on its state
 			renderColors(mainboard);
 
 			//Render the current board state
 			renderNums(mainboard, myFont);
+						//Draw the grid
+			drawGrid();
 
 			//Update the screen
 			SDL_RenderPresent(myRender);
@@ -431,16 +432,34 @@ void renderNums(tile board[][COLS], TTF_Font * font) {
 
 //Draws the black grid on the board
 void drawGrid(void) {
-		//Set renderer color to black
-		SDL_SetRenderDrawColor(myRender, 0, 0, 0, 0xFF);
-		//Draw vertical lines
-		for (int i = 0; i <= 9; i++) {
-			SDL_RenderDrawLine(myRender, SCREEN_WIDTH * i / 9, 0, SCREEN_WIDTH * i / 9, SCREEN_HEIGHT);
+	int i;
+
+	//Set renderer color to black
+	SDL_SetRenderDrawColor(myRender, 0, 0, 0, 0xFF);
+
+	//Draw vertical lines
+	for (i = 0; i <= 9; i++) {
+		if (i % 3 == 0 && i != 0 && i != 9) {
+			SDL_RenderDrawLine(myRender, SCREEN_WIDTH * i / 9 - 1, 0, SCREEN_WIDTH * i / 9 - 1, SCREEN_HEIGHT);
+			SDL_RenderDrawLine(myRender, SCREEN_WIDTH * i / 9 + 1, 0, SCREEN_WIDTH * i / 9 + 1, SCREEN_HEIGHT);
 		}
-		//Horrizontal lines
-		for (int i = 0; i <= 9; i++) {
-			SDL_RenderDrawLine(myRender, 0, SCREEN_HEIGHT * i / 9, SCREEN_WIDTH, SCREEN_HEIGHT * i / 9);
+		else if (i == 9) {
+			SDL_RenderDrawLine(myRender, SCREEN_WIDTH * i / 9 - 1, 0, SCREEN_WIDTH * i / 9 - 1, SCREEN_HEIGHT);
 		}
+		SDL_RenderDrawLine(myRender, SCREEN_WIDTH * i / 9, 0, SCREEN_WIDTH * i / 9, SCREEN_HEIGHT);
+	}
+
+	//Horrizontal lines
+	for (i = 0; i <= 9; i++) {
+		if (i % 3 == 0 && i != 0 && i != 9) {
+			SDL_RenderDrawLine(myRender, 0, SCREEN_HEIGHT * i / 9 - 1, SCREEN_WIDTH, SCREEN_HEIGHT * i / 9 - 1);
+			SDL_RenderDrawLine(myRender, 0, SCREEN_HEIGHT * i / 9 + 1, SCREEN_WIDTH, SCREEN_HEIGHT * i / 9 + 1);
+		}
+		else if (i == 9) {
+			SDL_RenderDrawLine(myRender, 0, SCREEN_HEIGHT * i / 9 - 1, SCREEN_WIDTH, SCREEN_HEIGHT * i / 9 - 1);
+		}
+		SDL_RenderDrawLine(myRender, 0, SCREEN_HEIGHT * i / 9, SCREEN_WIDTH, SCREEN_HEIGHT * i / 9);
+	}
 }
 
 //Determines the grid row/column from the x and y position of the mouse
