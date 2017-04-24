@@ -11,7 +11,7 @@
 #include <SDL2/SDL_ttf.h>
 
 #define ROWS 9
-#define COLS 9
+#define COLS 9void saveGame(tile board[][COLS])
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 640
 
@@ -115,6 +115,7 @@ int main(int argc, char * argv[]) {
 					}
 					//Right click causes the tile to become inactive
 					else {
+						//Get rid of this if statement
 						if (mainboard[i][j].isActive) {
 							mainboard[i][j].isActive = false;
 						}
@@ -221,12 +222,12 @@ bool loadNums(int board[][COLS], char * filename) {
 				break;
 			}
 		}
-	}
 
-	//Close the file.
-	if ( fclose(fp) ) {
-		printf("Error closing file %s!\n", filename);
-		success = 0;
+		//Close the file.
+		if ( fclose(fp) ) {
+			printf("Error closing file %s!\n", filename);
+			success = 0;
+		}
 	}
 	return success;
 }
@@ -430,15 +431,15 @@ void renderNums(tile board[][COLS], TTF_Font * font) {
 
 //Draws the black grid on the board
 void drawGrid(void) {
-		//Draw a black grid. Fancy math keeps the gridlines square even if the window is rectangular.
+		//Set renderer color to black
 		SDL_SetRenderDrawColor(myRender, 0, 0, 0, 0xFF);
 		//Draw vertical lines
 		for (int i = 0; i <= 9; i++) {
-			SDL_RenderDrawLine(myRender, (SCREEN_WIDTH - SCREEN_HEIGHT)/2 + SCREEN_HEIGHT * i / 9, 0, (SCREEN_WIDTH - SCREEN_HEIGHT)/2 + SCREEN_HEIGHT * i / 9, SCREEN_HEIGHT);
+			SDL_RenderDrawLine(myRender, SCREEN_WIDTH * i / 9, 0, SCREEN_WIDTH * i / 9, SCREEN_HEIGHT);
 		}
 		//Horrizontal lines
 		for (int i = 0; i <= 9; i++) {
-			SDL_RenderDrawLine(myRender, (SCREEN_WIDTH - SCREEN_HEIGHT) / 2, SCREEN_HEIGHT * i / 9, (SCREEN_WIDTH - SCREEN_HEIGHT) / 2 + SCREEN_HEIGHT, SCREEN_HEIGHT * i / 9);
+			SDL_RenderDrawLine(myRender, 0, SCREEN_HEIGHT * i / 9, SCREEN_WIDTH, SCREEN_HEIGHT * i / 9);
 		}
 }
 
@@ -510,7 +511,7 @@ void checkMove(tile board[][COLS], int row, int col) {
 	//Checking if the value is nonzero
 	if (board[row][col].value) {
 		//Checking the values within the row of the given square
-		for (j = 0; j < COLS; j++) {
+		for (j = 0; j < ROWS; j++) {
 			if (board[row][j].value == board[row][col].value && j != col) {
 				board[row][col].isError = true;
 				printf("Row confliction!\n");
@@ -519,7 +520,7 @@ void checkMove(tile board[][COLS], int row, int col) {
 		}
 
 		//Checking the values within the column of the given square
-		for (i = 0; i < ROWS; i++) {
+		for (i = 0; i < COLS; i++) {
 			if (board[i][col].value == board[row][col].value && i != row) {
 				board[row][col].isError = true;
 				printf("Column confliction!\n");
